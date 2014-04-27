@@ -8,23 +8,19 @@
 #ifndef SCENE_H_
 #define SCENE_H_
 
-#include <stdio.h>
+#include <cstdio>
+#include <string>
+#include <map>
 
 #include "pathfinder_common.h"
 
-#define TPATH 1
-#define TOBJ 2
-#define THUM 3
-
-typedef struct point_t {
-	int type;
-} point_t;
+using namespace std;
 
 typedef struct scene_t {
 	point_t **grid;
 } scene_t;
 
-int buildMap(FILE *, scene_t *, int *, int *);
+int buildMap(FILE *, scene_t *, int *, int *, map<string, human_t *> *, map<string, point_t *> *);
 
 
 #endif /* SCENE_H_ */
