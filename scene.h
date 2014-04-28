@@ -18,9 +18,13 @@ using namespace std;
 
 typedef struct scene_t {
 	point_t **grid;
+	int width;
+	int height;
 } scene_t;
 
-int buildMap(FILE *, scene_t *, int *, int *, map<string, human_t *> *, map<string, point_t *> *);
+int buildMap(FILE *, scene_t *, map<string, human_t *> *, map<string, point_t *> *);
+int linearizeGrid(scene_t *, point_t **);
+void freeScene(scene_t *, map<string, human_t *> *);
 
 
 #endif /* SCENE_H_ */
