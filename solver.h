@@ -23,6 +23,6 @@ typedef struct node {
 	float f, g, h;
 } node;
 
-__global__ void solveScene(point_t *, human_t *, stat_t *, int, int, int, int *, int);
+__global__ void solveScene(point_t *, human_t *, stat_t *, int, int, int, int *);
 
 #endif /* SOLVER_H_ */

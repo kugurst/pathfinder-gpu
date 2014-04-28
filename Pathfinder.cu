@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 	int threads = get_max_threads();
 	int blocks = (int) ceil(((double) numHumans) / threads);
 	// Launch the kernel
-	solveScene<<<blocks, threads>>>(d_linearGrid, d_humans, d_stats, scene.width, scene.height, numHumans, d_remainingHumans, threads);
+	solveScene<<<blocks, threads>>>(d_linearGrid, d_humans, d_stats, scene.width, scene.height, numHumans, d_remainingHumans);
 	GPU_CHECKERROR(cudaGetLastError());
 
 	// Free the memory
