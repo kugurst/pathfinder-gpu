@@ -25,7 +25,7 @@
 #define OBSTR "O"
 #define BLKSTR "B"
 
-#define DEBUG_PATH
+//#define DEBUG_PATH
 #ifdef DEBUG_PATH
 	#define debugPrintf(...)	printf(__VA_ARGS__);
 #else
@@ -33,15 +33,7 @@
 #endif
 // handy error macro:
 #define GPU_CHECKERROR( err ) (gpuCheckError( err, __FILE__, __LINE__ ))
-static void gpuCheckError( cudaError_t err,
-                          const char *file,
-                          int line ) {
-    if (err != cudaSuccess) {
-        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
-               file, line );
-        exit( EXIT_FAILURE );
-    }
-}
+void gpuCheckError(cudaError_t err, const char *file, int line);
 
 struct human_t;
 typedef struct human_t human_t;
@@ -52,6 +44,11 @@ typedef struct point_t {
 	int type;
 	human_t *hum;
 } point_t;
+
+typedef struct simple_point_t {
+	int x;
+	int y;
+} simple_point_t;
 
 // A human entity. Consists of a name, a speed, a goal, a shift parameters, and a position
 struct human_t {
