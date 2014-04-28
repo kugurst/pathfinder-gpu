@@ -21,6 +21,31 @@ using namespace std;
 
 static const char *mapDelims = " \t";
 
+void analyzeResults(void *results, map<string, human_t *> *humans, scene_t *scene, unsigned int itrCnt, human_t *humanArr)
+{
+	int resultWidth = scene->width * scene->height * sizeof(simple_point_t) + 2 * sizeof(int);
+	printf("%u, %d\n", itrCnt, resultWidth);
+	// For each result
+	for (unsigned int i = 0; i < humans->size(); i++) {
+		// Get the row
+		void *rRow = (void *) (((char *) results) + resultWidth * i);
+		// Determine the number of elements and collision count
+		unsigned int *nums = (unsigned int *) (((char *) rRow) + (resultWidth - sizeof(int) * 2));
+		printf("human: %s, collisions: %u, elements: %u\n", humanArr[i].name, nums[0], nums[1]);
+		// Print the path
+		simple_point_t *point = ((simple_point_t *) rRow);
+		printf("path: ");
+		for (unsigned int k = 0; k < nums[1]; k++) {
+			if (k == nums[1] - 1) {
+				printf("(%d,%d)", point[k].x, point[k].y);
+			} else {
+				printf("(%d,%d), ", point[k].x, point[k].y);
+			}
+		}
+		printf("\n");
+	}
+}
+
 int linearizeGrid(scene_t *scene, point_t **linearGrid)
 {
 	// Allocate space for the linear grid

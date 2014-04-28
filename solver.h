@@ -29,6 +29,6 @@ typedef struct stat_t {
 	int collisions;
 } stat_t;
 
-__global__ void solveScene(point_t *, human_t *, stat_t *, int, int, int, int *, void *);
+__global__ void solveScene(point_t *, human_t *, stat_t *, int, int, int, int *, void *, unsigned int *);
 
 #endif /* SOLVER_H_ */

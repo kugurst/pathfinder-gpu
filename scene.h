@@ -16,6 +16,8 @@
 
 using namespace std;
 
+__device__ unsigned int iterationCount = 0;
+
 typedef struct scene_t {
 	point_t **grid;
 	int width;
@@ -24,6 +26,7 @@ typedef struct scene_t {
 
 int buildMap(FILE *, scene_t *, map<string, human_t *> *, map<string, point_t *> *);
 int linearizeGrid(scene_t *, point_t **);
+void analyzeResults(void *, map<string, human_t *> *, scene_t *, unsigned int, human_t *);
 void freeScene(scene_t *, map<string, human_t *> *);
 
 

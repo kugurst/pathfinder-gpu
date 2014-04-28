@@ -16,7 +16,6 @@
 __shared__ bool isLastBlockDone;
 __device__ unsigned int count1 = 0;
 __device__ unsigned int count2 = 0;
-__device__ unsigned int iterationCount = 0;
 
 __device__ void addToList(nodeList_t *list, node_t *node)
 {
@@ -381,7 +380,7 @@ __device__ void transferPath(stat_t *stats, int id, void *results, int width, in
 	int resultWidth = width * height * sizeof(simple_point_t) + 2 * sizeof(int);
 	debugPrintf("width: %d\n", resultWidth);
 	void *rRow = (void *) (((char *) results) + resultWidth * id);
-	printf("base: %p, row: %p, diff: %d\n", results, rRow, ((char *) rRow) - ((char *) results));
+	debugPrintf("base: %p, row: %p, diff: %d\n", results, rRow, ((char *) rRow) - ((char *) results));
 	// Write the stats to the results
 	nodeList_t *curList = stats->path;
 	// Mark the result we are writing
@@ -405,7 +404,7 @@ __device__ void transferPath(stat_t *stats, int id, void *results, int width, in
 }
 
 __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
-		int maxWidth, int maxHeight, int numHumans, int *remainingHumans, void *results)
+		int maxWidth, int maxHeight, int numHumans, int *remainingHumans, void *results, unsigned int *itrCnt)
 {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
 	// Initialize the stats
@@ -441,7 +440,7 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 			// If our human has reached the end, return
 			if (hum->posX == hum->goalX && hum->posY == hum->goalY) {
 				if (!transferredPath) {
-					printPath(stats[id].path);
+//					printPath(stats[id].path);
 					transferPath(&stats[id], id, results, maxWidth, maxHeight);
 					transferredPath = true;
 				}
@@ -463,11 +462,25 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 						debugPrintf("new position: %d,%d\n", hum->posX, hum->posY);
 					}
 					else {
+						// Stall
 						stats[id].collisions++;
+						node_t *nextNode = path->node;
+						addToStatsPath(stats[id].path, nextNode);
 						debugPrintf("blocked\n");
 					}
 					freeList(path);
 					debugPrintf("freed path\n");
+				} else {
+					// Stall
+					node_t node;
+						node.parent = NULL;
+						node.next = NULL;
+						node.x = hum->posX;
+						node.y = hum->posY;
+						node.g = 0;
+						node.h = (hum->posX - hum->goalX) * (hum->posX - hum->goalX) + (hum->posY - hum->goalY) * (hum->posY - hum->goalY);
+						node.f = node.g + node.h;
+					addToStatsPath(stats[id].path, &node);
 				}
 				// Verify that the scene has been solved
 				syncAllThreads((iterationCount % 2 == 0) ? &count1 : &count2);
@@ -476,9 +489,10 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 	}
 	// The very last thread won't have transfered his human yet
 	if (!transferredPath) {
-		printPath(stats[id].path);
+//		printPath(stats[id].path);
 		transferPath(&stats[id], id, results, maxWidth, maxHeight);
 		transferredPath = true;
+		*itrCnt = iterationCount;
 	}
 }
 

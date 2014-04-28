@@ -82,16 +82,19 @@ int main(int argc, char** argv)
 	// Allocate space to store the results
 	void *results, *d_results;
 	int *d_remainingHumans;
+	unsigned int *d_itrCnt, itrCnt, zero = 0;
 	GPU_CHECKERROR(cudaMalloc(&d_linearGrid, sizeof(point_t) * scene.width * scene.height));
 	GPU_CHECKERROR(cudaMalloc(&d_humans, sizeof(human_t) * numHumans));
 	GPU_CHECKERROR(cudaMalloc(&d_stats, sizeof(stat_t) * numHumans));
 	GPU_CHECKERROR(cudaMalloc(&d_remainingHumans, sizeof(int)));
+	GPU_CHECKERROR(cudaMalloc(&d_itrCnt, sizeof(int)));
 	GPU_CHECKERROR(cudaHostAlloc(&results, scene.width * scene.height * sizeof(simple_point_t) * numHumans + sizeof(int) * numHumans * 2, cudaHostAllocMapped));
 	GPU_CHECKERROR(cudaHostGetDevicePointer(&d_results, results, 0));
 	debugPrintf("pinned memory: %lu, width: %d, height: %d\n", scene.width * scene.height * sizeof(simple_point_t) * numHumans + sizeof(int) * numHumans * 2, scene.width, scene.height);
 	GPU_CHECKERROR(cudaMemcpy(d_linearGrid, linearGrid, sizeof(point_t) * scene.width * scene.height, cudaMemcpyHostToDevice));
 	GPU_CHECKERROR(cudaMemcpy(d_humans, humans, sizeof(human_t) * numHumans, cudaMemcpyHostToDevice));
 	GPU_CHECKERROR(cudaMemcpy(d_remainingHumans, &numHumans, sizeof(int), cudaMemcpyHostToDevice));
+	GPU_CHECKERROR(cudaMemcpy(d_itrCnt, &zero, sizeof(int), cudaMemcpyHostToDevice));
 
 	// Get the maximum number of threads
 	int threads = get_max_threads();
@@ -99,7 +102,8 @@ int main(int argc, char** argv)
 	// Increase the heap size
 	GPU_CHECKERROR(cudaDeviceSetLimit(cudaLimitMallocHeapSize, 200 * 1024 * 1024));
 	// Launch the kernel
-	solveScene<<<blocks, threads>>>(d_linearGrid, d_humans, d_stats, scene.width, scene.height, numHumans, d_remainingHumans, d_results);
+	solveScene<<<blocks, threads>>>(d_linearGrid, d_humans, d_stats, scene.width, scene.height, numHumans, d_remainingHumans, d_results, d_itrCnt);
+	GPU_CHECKERROR(cudaMemcpy(&itrCnt, d_itrCnt, sizeof(int), cudaMemcpyDeviceToHost));
 	GPU_CHECKERROR(cudaDeviceSynchronize());
 
 	// Free the memory
@@ -109,7 +113,7 @@ int main(int argc, char** argv)
 	GPU_CHECKERROR(cudaFree(d_remainingHumans));
 
 	// Now, analyze the results
-	analyzeResults(results, humanMap, linearGrid);
+	analyzeResults(results, &humanMap, &scene, itrCnt, humans);
 	GPU_CHECKERROR(cudaFreeHost(results));
 	free(linearGrid);
 	free(humans);
