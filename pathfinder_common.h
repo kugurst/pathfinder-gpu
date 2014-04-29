@@ -25,7 +25,7 @@
 #define OBSTR "O"
 #define BLKSTR "B"
 
-//#define DEBUG_PATH
+// #define DEBUG_PATH
 #ifdef DEBUG_PATH
 	#define debugPrintf(...)	printf(__VA_ARGS__);
 #else

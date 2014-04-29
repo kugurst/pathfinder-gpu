@@ -286,16 +286,14 @@ __device__ nodeList_t *aStar(point_t *grid, human_t *human, int maxWidth, int ma
 	return pathList;
 }
 
-__device__ void syncAllThreads(unsigned int *syncCounter)
+__device__ void syncAllThreads(unsigned int *syncCounter, unsigned int *iterations)
 {
-	unsigned int value = 0;
 	__syncthreads();
 	if (threadIdx.x == 0)
-		value = atomicInc(syncCounter, gridDim.x - 1);
+		atomicInc(syncCounter, gridDim.x - 1);
 	volatile unsigned int *counter = syncCounter;
 	do {} while (*counter > 0);
-	if (threadIdx.x == 0 && value == gridDim.x - 1)
-		iterationCount++;
+	(*iterations)++;
 }
 
 __device__ void printPath(nodeList_t *list)
@@ -380,7 +378,7 @@ __device__ void transferPath(stat_t *stats, int id, void *results, int width, in
 	int resultWidth = width * height * sizeof(simple_point_t) + 2 * sizeof(int);
 	debugPrintf("width: %d\n", resultWidth);
 	void *rRow = (void *) (((char *) results) + resultWidth * id);
-	debugPrintf("base: %p, row: %p, diff: %d\n", results, rRow, ((char *) rRow) - ((char *) results));
+	debugPrintf("base: %p, row: %p, diff: %d, id: %d\n", results, rRow, ((char *) rRow) - ((char *) results), id);
 	// Write the stats to the results
 	nodeList_t *curList = stats->path;
 	// Mark the result we are writing
@@ -404,9 +402,12 @@ __device__ void transferPath(stat_t *stats, int id, void *results, int width, in
 }
 
 __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
-		int maxWidth, int maxHeight, int numHumans, int *remainingHumans, void *results, unsigned int *itrCnt)
+		int maxWidth, int maxHeight, int numHumans, int *remainingHumans, void *results, unsigned int *itrCnt, unsigned int *iterations)
 {
 	int id = threadIdx.x + blockDim.x * blockIdx.x;
+	bool transferredPath = false;
+	debugPrintf("id: %d\n", id);
+	iterations[id] = 0;
 	// Initialize the stats
 	if (id < numHumans) {
 		stats[id].collisions = 0;
@@ -425,7 +426,6 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 			node.f = node.g + node.h;
 		addToStatsPath(stats[id].path, &node);
 	}
-	bool transferredPath = false;
 	while (*remainingHumans != 0) {
 		// If we don't have a human, return
 		if (id >= numHumans) {
@@ -433,7 +433,7 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 			if (threadIdx.x != 0)
 				return;
 			// Sync threads
-			syncAllThreads((iterationCount % 2 == 0) ? &count1 : &count2);
+			syncAllThreads((iterations[id] % 2 == 0) ? &count1 : &count2, &iterations[id]);
 		} else {
 			// Get our current human
 			human_t *hum = &humans[id];
@@ -441,6 +441,7 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 			if (hum->posX == hum->goalX && hum->posY == hum->goalY) {
 				if (!transferredPath) {
 //					printPath(stats[id].path);
+					debugPrintf("id2: %d\n", id);
 					transferPath(&stats[id], id, results, maxWidth, maxHeight);
 					transferredPath = true;
 				}
@@ -448,7 +449,7 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 				if (threadIdx.x != 0)
 					return;
 				// Sync threads
-				syncAllThreads((iterationCount % 2 == 0) ? &count1 : &count2);
+				syncAllThreads((iterations[id] % 2 == 0) ? &count1 : &count2, &iterations[id]);
 			} else {
 				debugPrintf("%d\n", gridDim.x);
 				nodeList_t *path = aStar(grid, hum, maxWidth, maxHeight);
@@ -483,16 +484,17 @@ __global__ void solveScene(point_t *grid, human_t *humans, stat_t *stats,
 					addToStatsPath(stats[id].path, &node);
 				}
 				// Verify that the scene has been solved
-				syncAllThreads((iterationCount % 2 == 0) ? &count1 : &count2);
+				syncAllThreads((iterations[id] % 2 == 0) ? &count1 : &count2, &iterations[id]);
 			}
 		}
 	}
-	// The very last thread won't have transfered his human yet
-	if (!transferredPath) {
+	// The very last threads won't have transfered their humans yet
+	if (!transferredPath && id < numHumans) {
 //		printPath(stats[id].path);
+		debugPrintf("id2: %d\n", id);
 		transferPath(&stats[id], id, results, maxWidth, maxHeight);
 		transferredPath = true;
-		*itrCnt = iterationCount;
+		*itrCnt = iterations[id];
 	}
 }
 

@@ -16,8 +16,6 @@
 
 using namespace std;
 
-__device__ unsigned int iterationCount = 0;
-
 typedef struct scene_t {
 	point_t **grid;
 	int width;
