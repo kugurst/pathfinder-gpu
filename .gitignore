@@ -4,3 +4,4 @@ Pathfinder.vcxproj.user
 Release
 vc110.pdb
 x64
+*.class
