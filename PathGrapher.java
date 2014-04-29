@@ -2,6 +2,8 @@ import java.awt.BorderLayout;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.LinkedList;
@@ -15,7 +17,7 @@ import javax.swing.JPanel;
 
 public class PathGrapher
 {
-	static AtomicBoolean	start	= new AtomicBoolean();
+	static AtomicBoolean	start	= new AtomicBoolean(false);
 
 	public static void main(String[] args)
 	{
@@ -40,6 +42,14 @@ public class PathGrapher
 		// Setup the controls
 		JPanel controls = new JPanel(new GridLayout(0, 1, 5, 0));
 		JButton simulate = new JButton("Simulate!");
+		// Add a listener to the button
+		simulate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				start.set(!start.get());
+			}
+		});
 		controls.add(simulate);
 		frame.add(controls, BorderLayout.EAST);
 
