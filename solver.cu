@@ -279,6 +279,7 @@ __device__ nodeList_t *aStar(point_t *grid, human_t *human, int maxWidth,
 				point_t point = grid[px + py * maxWidth];
 
 				// If it's not a path or goal, skip it
+				// TODO: go through humans
 				if (point.type != TPATH && point.type != TEND)
 					continue;
 

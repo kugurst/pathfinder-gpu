@@ -41,10 +41,11 @@ public class SimulCanvas extends JComponent implements Runnable
 	private int						initialWidth;
 	private int						initialHeight;
 	
-	private int[][]					sceneMap;
-	List<Human>	humans = new LinkedList<Human>();
+	private volatile int[][]					sceneMap;
+	private List<Human>	humans = new LinkedList<Human>();
 	private int iterationCount;
 	private int curItr = 0;
+	private int[] perHumItr;
 
 	private long					cycleTime, startCycleTime;
 
@@ -68,6 +69,10 @@ public class SimulCanvas extends JComponent implements Runnable
 		initialHeight = height / 2;
 		// Build the paths
 		buildPaths(results);
+		// Make the human iterations array
+		perHumItr = new int[humans.size()];
+		for (int i = 0 ; i < perHumItr.length; i++)
+			perHumItr[i] = 1;
 		new Thread(this).start();
 	}
 
@@ -166,9 +171,9 @@ public class SimulCanvas extends JComponent implements Runnable
     {
 	    // Once every second
 		if (cycleCount.get() % 60 == 0) {
-			curItr++; // Humans already start off at their beginning
-			// For each human, change its position
+			int pos = 0;
 			for (Human hum : humans) {
+				int curItr = perHumItr[pos];
 				// If it's home, don't move it
 				if (curItr < hum.path.size()) {
 					Integer[] next = hum.path.get(curItr);
@@ -176,12 +181,19 @@ public class SimulCanvas extends JComponent implements Runnable
 					// Save the type of the next location
 					int prevType = hum.curPntType;
 					int nextType = sceneMap[next[1]][next[0]];
+					// If the next location is a human, don't move
+					if (nextType == THUM) {
+						pos++;
+						continue;
+					}
 					// Set the next location to be a human
 					sceneMap[next[1]][next[0]] = THUM;
 					// Set the previous location to be whatever it was
 					sceneMap[cur[1]][cur[0]] = prevType;
 					// Update the previous type of the human's position
 					hum.curPntType = nextType;
+					// Increase our iteration count
+					perHumItr[pos++]++;
 				}
 			}
 		}
