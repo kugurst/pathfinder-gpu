@@ -17,7 +17,7 @@ import javax.swing.JPanel;
 
 public class PathGrapher
 {
-	static AtomicBoolean	start	= new AtomicBoolean(false);
+	static AtomicBoolean start = new AtomicBoolean(false);
 
 	public static void main(String[] args)
 	{
@@ -55,11 +55,11 @@ public class PathGrapher
 
 		// Setup the canvas
 		Rectangle screenSize =
-			GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
-				.getDefaultConfiguration().getBounds();
+		    GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
+		        .getDefaultConfiguration().getBounds();
 		SimulCanvas simult =
-			new SimulCanvas(screenSize.width - controls.getPreferredSize().width,
-				screenSize.height, results, start, map);
+		    new SimulCanvas(screenSize.width - controls.getPreferredSize().width,
+		        screenSize.height, results, start, map);
 		frame.add(simult, BorderLayout.CENTER);
 
 		// Draw the frame
@@ -104,18 +104,14 @@ public class PathGrapher
 			List<Integer> points = new LinkedList<Integer>();
 			for (String tok : toks) {
 				// Is it a human?
-				if (tok.lastIndexOf(SimulCanvas.HUMCHAR) >= 0)
-					points.add(SimulCanvas.TSTART);
+				if (tok.lastIndexOf(SimulCanvas.HUMCHAR) >= 0) points.add(SimulCanvas.TSTART);
 				// Is it a goal?
-				else if (tok.lastIndexOf(SimulCanvas.ENDCHAR) >= 0)
-					points.add(SimulCanvas.TEND);
+				else if (tok.lastIndexOf(SimulCanvas.ENDCHAR) >= 0) points.add(SimulCanvas.TEND);
 				// Is it an obstacle?
 				else if (tok.equals("" + SimulCanvas.OBCHAR)
-					|| tok.equals("" + SimulCanvas.BLKCHAR))
-					points.add(SimulCanvas.TOBJ);
+				    || tok.equals("" + SimulCanvas.BLKCHAR)) points.add(SimulCanvas.TOBJ);
 				// Otherwise, it's a path
-				else
-					points.add(SimulCanvas.TPATH);
+				else points.add(SimulCanvas.TPATH);
 			}
 			// Add the list to the overall list
 			list.add(points);
@@ -124,8 +120,7 @@ public class PathGrapher
 		// Get the height of the grid
 		int height = list.size();
 		// Attempt to get the width of the grid
-		if (height < 1)
-			return null;
+		if (height < 1) return null;
 		int width = list.get(0).size();
 		// Make an array to hold the values
 		int[][] grid = new int[height][width];
