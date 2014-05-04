@@ -105,7 +105,7 @@ public class PathGrapher
 			for (String tok : toks) {
 				// Is it a human?
 				if (tok.lastIndexOf(SimulCanvas.HUMCHAR) >= 0)
-					points.add(SimulCanvas.THUM);
+					points.add(SimulCanvas.TSTART);
 				// Is it a goal?
 				else if (tok.lastIndexOf(SimulCanvas.ENDCHAR) >= 0)
 					points.add(SimulCanvas.TEND);

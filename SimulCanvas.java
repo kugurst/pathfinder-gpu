@@ -19,11 +19,13 @@ public class SimulCanvas extends JComponent implements Runnable
 	/** This frame delay limits the FPS to 60 */
 	public static final double		FRAME_DELAY			= 1.0 / 60.0 * 1000.0;
 	public static final int TARGET_FPS = 60;
+	public static int MOVE_RATE = TARGET_FPS;
 
 	public static final int			TPATH				= 1;
 	public static final int			TOBJ				= 2;
 	public static final int			THUM				= 3;
 	public static final int			TEND				= 4;
+	public static final int			TSTART				= 5;
 	
 	public static final int PATH_LEN = 6;
 
@@ -41,10 +43,8 @@ public class SimulCanvas extends JComponent implements Runnable
 	private int						initialWidth;
 	private int						initialHeight;
 	
-	private volatile int[][]					sceneMap;
+	private int[][]					sceneMap, backingMap;
 	private List<Human>	humans = new LinkedList<Human>();
-	private int iterationCount;
-	private int curItr = 0;
 	private int[] perHumItr;
 
 	private long					cycleTime, startCycleTime;
@@ -59,6 +59,11 @@ public class SimulCanvas extends JComponent implements Runnable
 		super();
 		this.start = start;
 		sceneMap = map;
+		backingMap = new int[sceneMap.length][sceneMap[0].length];
+		// go through each row
+		for (int y = 0; y < sceneMap.length; y++)
+			for (int x = 0; x < sceneMap[0].length; x++)
+				backingMap[y][x] = sceneMap[y][x];
 		setBackground(Color.WHITE);
 		// Set the graphics configuration
 		// Figure out the width and height of this canvas
@@ -80,10 +85,8 @@ public class SimulCanvas extends JComponent implements Runnable
     {
 	    // Split the results into lines
 		String[] lines = results.split("\n");
-		// Get the number of iterations
-		iterationCount = Integer.parseInt(lines[0].split("\\,")[0]) + 1;
 		// Parse lines in group of two
-		for(int i = 1; i < lines.length; i += 2) {
+		for(int i = 0; i < lines.length; i += 2) {
 			Human hum = new Human();
 			// Get the name
 			hum.name = lines[i].split("\\ ")[1];
@@ -159,18 +162,25 @@ public class SimulCanvas extends JComponent implements Runnable
 			drawMap(ig, width, height);
 //			ig.fillOval(0, 0, width / 2, height / 2);
 			// Move the humans
-			if (start.get())
+			if (start.get()) {
 				moveHumans();
+				animateHumans();
+			}
 			ig.dispose();
 			g2d.drawImage(image, 0, 0, null);
 		}
 		syncFramerate();
 	}
-
+	
+	private void animateHumans()
+	{
+	
+	}
+	
 	private void moveHumans()
     {
 	    // Once every second
-		if (cycleCount.get() % 60 == 0) {
+		if (cycleCount.get() % MOVE_RATE == 0) {
 			int pos = 0;
 			for (Human hum : humans) {
 				int curItr = perHumItr[pos];
@@ -181,20 +191,18 @@ public class SimulCanvas extends JComponent implements Runnable
 					// Save the type of the next location
 					int prevType = hum.curPntType;
 					int nextType = sceneMap[next[1]][next[0]];
-					// If the next location is a human, don't move
-					if (nextType == THUM) {
-						pos++;
-						continue;
-					}
-					// Set the next location to be a human
-					sceneMap[next[1]][next[0]] = THUM;
+					if (nextType == THUM)
+						nextType = backingMap[next[1]][next[0]];
 					// Set the previous location to be whatever it was
 					sceneMap[cur[1]][cur[0]] = prevType;
+					// Set the next location to be a human
+					sceneMap[next[1]][next[0]] = THUM;
 					// Update the previous type of the human's position
 					hum.curPntType = nextType;
 					// Increase our iteration count
-					perHumItr[pos++]++;
+					perHumItr[pos]++;
 				}
+				pos++;
 			}
 		}
     }
@@ -219,20 +227,19 @@ public class SimulCanvas extends JComponent implements Runnable
 	    		if (pointType == TPATH) {
 	    			ig.setColor(Color.red);
 	    			ig.clearRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
-	    			ig.drawRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
-	    		}
-	    		// Color humans blue
-	    		else if (pointType == THUM) {
-	    			ig.setColor(Color.blue);
-	    			ig.fillRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
 	    		}
 	    		// Color goals green
 	    		else if (pointType == TEND) {
 	    			ig.setColor(Color.green);
 	    			ig.fillRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
 	    		}
+	    		// Color start positions yellow
+	    		else if (pointType == TSTART) {
+	    			ig.setColor(Color.yellow);
+	    			ig.fillRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
+	    		}
 	    		// Color obstacles red
-	    		else {
+	    		else if (pointType == TOBJ) {
 	    			ig.setColor(Color.black);
 	    			ig.fillRect(x * gridWidth, y * gridHeight, drawWidth, drawHeight);
 	    		}
@@ -262,7 +269,7 @@ public class SimulCanvas extends JComponent implements Runnable
 		String name;
 		int posX, posY, goalX, goalY;
 		// Blank their start location
-		int curPntType = TPATH;
+		int curPntType = TSTART;
 		// A list of x,y pairs
 		List<Integer[]> path = new LinkedList<Integer[]>();
 		
