@@ -190,6 +190,7 @@ public class SimulCanvas extends JComponent implements Runnable
 			if (hum.gridX == -1 && hum.gridY == -1) {
 				hum.gridX = hum.posX * gridWidth;
 				hum.gridY = hum.posY * gridHeight;
+				continue;
 			}
 			// if (cycleCount.get() % MOVE_RATE == 0) System.out.println("name: " + hum.name
 			// + ", gridX: " + hum.gridX + ", gridY: " + hum.gridY);
@@ -203,15 +204,10 @@ public class SimulCanvas extends JComponent implements Runnable
 			int diffY = destY - hum.gridY;
 			// if (cycleCount.get() % MOVE_RATE == 0) System.out.println("name: " + hum.name
 			// + ", diffX: " + diffX + ", diffY: " + diffY);
-			// Determine how far to move them in this cycle
-			int travX = (int) Math.ceil(diffX / (double) cycles);
-			int travY = (int) Math.ceil(diffY / (double) cycles);
-			// System.out.println("name: " + hum.name + ", travX: " + travX + ", travY: " + travY);
 			// Assign their new position
-			// if (cycles == MOVE_RATE / 2) {
-			hum.gridX += travX;
-			hum.gridY += travY;
-			if (cycles == MOVE_RATE) {
+			hum.gridX += diffX / cycles;
+			hum.gridY += diffY / cycles;
+			if (cycles == 1) {
 				hum.gridX = destX;
 				hum.gridY = destY;
 			}
