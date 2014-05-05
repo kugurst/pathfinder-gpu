@@ -4,7 +4,9 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
-import java.awt.image.VolatileImage;
+import java.awt.Image;
+import java.awt.Transparency;
+import java.awt.image.BufferedImage;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,7 +36,7 @@ public class SimulCanvas extends JComponent implements Runnable
 
 	private static final long     serialVersionUID = 162410073428239152L;
 
-	private VolatileImage         image;
+	private Image                 image;
 
 	private GraphicsConfiguration gc;
 
@@ -131,42 +133,42 @@ public class SimulCanvas extends JComponent implements Runnable
 	@Override
 	public void paint(Graphics g)
 	{
-		long newCycle = cycleCount.get();
-		stepSimulation(cycleCount.compareAndSet(newCycle, newCycle + 1), (Graphics2D) g);
+		stepSimulation((Graphics2D) g);
 	}
 
 	@Override
 	public void run()
 	{
-		while (true) {
-			long newCycle = cycleCount.get();
-			stepSimulation(cycleCount.compareAndSet(newCycle, newCycle + 1),
-			    (Graphics2D) getGraphics());
-		}
+		while (true)
+			stepSimulation((Graphics2D) getGraphics());
 	}
 
-	private synchronized void stepSimulation(boolean first, Graphics2D g2d)
+	private synchronized void stepSimulation(Graphics2D g2d)
 	{
 		startCycleTime = System.currentTimeMillis();
-		if (first && g2d != null) {
+		if (g2d != null) {
 			int width = getWidth(), height = getHeight();
+			if (width == 0 || height == 0) return;
 			// Get the image graphics
-			if (image == null || image.validate(gc) == VolatileImage.IMAGE_INCOMPATIBLE
-			    || image.getWidth() != width || image.getHeight() != height)
-			    image = gc.createCompatibleVolatileImage(width, height);
+			if (image == null || image.getWidth(null) != width || image.getHeight(null) != height) // image.validate(gc)
+			                                                                                       // ==
+			                                                                                       // VolatileImage.IMAGE_INCOMPATIBLE
+			    image = gc.createCompatibleImage(width, height, Transparency.OPAQUE); // gc.createCompatibleVolatileImage(width,
+			// height);
 			// Draw on it
-			Graphics2D ig = image.createGraphics();
-			ig.setColor(Color.red);
+			Graphics2D ig = ((BufferedImage) image).createGraphics();
+			ig.setBackground(Color.white);
+			ig.clearRect(0, 0, width, height);
 			// Draw the map
 			drawMap(ig, width, height);
-			// ig.fillOval(0, 0, width / 2, height / 2);
 			// Move the humans
 			if (start.get()) {
 				animateHumans(ig, width, height);
 				moveHumans();
 			}
-			ig.dispose();
 			g2d.drawImage(image, 0, 0, null);
+			ig.dispose();
+			cycleCount.incrementAndGet();
 		}
 		syncFramerate();
 	}
@@ -178,6 +180,9 @@ public class SimulCanvas extends JComponent implements Runnable
 		int mapHeight = sceneMap.length;
 		int gridWidth = (int) Math.floor((double) width / mapWidth);
 		int gridHeight = (int) Math.floor((double) height / mapHeight);
+		// Number of cycles left in this second
+		int cycles = MOVE_RATE - (int) cycleCount.get() % MOVE_RATE;
+		ig.setColor(Color.blue);
 
 		for (int i = 0; i < humans.size(); i++) {
 			Human hum = humans.get(i);
@@ -199,14 +204,18 @@ public class SimulCanvas extends JComponent implements Runnable
 			// if (cycleCount.get() % MOVE_RATE == 0) System.out.println("name: " + hum.name
 			// + ", diffX: " + diffX + ", diffY: " + diffY);
 			// Determine how far to move them in this cycle
-			int travX = (int) Math.ceil(diffX / (double) (cycleCount.get() % MOVE_RATE + 1));
-			int travY = (int) Math.ceil(diffY / (double) (cycleCount.get() % MOVE_RATE + 1));
+			int travX = (int) Math.ceil(diffX / (double) cycles);
+			int travY = (int) Math.ceil(diffY / (double) cycles);
 			// System.out.println("name: " + hum.name + ", travX: " + travX + ", travY: " + travY);
 			// Assign their new position
-			hum.gridX = destX - travX;
-			hum.gridY = destY - travY;
+			// if (cycles == MOVE_RATE / 2) {
+			hum.gridX += travX;
+			hum.gridY += travY;
+			if (cycles == MOVE_RATE) {
+				hum.gridX = destX;
+				hum.gridY = destY;
+			}
 			// Draw them
-			ig.setColor(Color.blue);
 			ig.fillOval(hum.gridX, hum.gridY, gridWidth, gridHeight);
 			// if (travX == 0 && travY == 0 && cycleCount.get() % MOVE_RATE == 0) System.out
 			// .println("grid dims: (" + gridWidth + ", " + gridHeight + ")");
